@@ -15,8 +15,22 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="ImGui.NET" Version="1.90.0.1" />
     <PackageReference Include="OpenTK" Version="4.8.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="ImGui.NET">
+      <HintPath>C:\Users\user\source\repos\ImGui.NET_Glaire_fork\bin\Release\ImGui.NET\net6.0\ImGui.NET.dll</HintPath>
+    </Reference>
+    <Reference Include="ImGuizmo.NET">
+      <HintPath>C:\Users\user\source\repos\ImGui.NET_Glaire_fork\bin\Release\ImGuizmo.NET\net6.0\ImGuizmo.NET.dll</HintPath>
+    </Reference>
+    <Reference Include="ImNodes.NET">
+      <HintPath>C:\Users\user\source\repos\ImGui.NET_Glaire_fork\bin\Release\ImNodes.NET\net6.0\ImNodes.NET.dll</HintPath>
+    </Reference>
+    <Reference Include="ImPlot.NET">
+      <HintPath>C:\Users\user\source\repos\ImGui.NET_Glaire_fork\bin\Release\ImPlot.NET\net6.0\ImPlot.NET.dll</HintPath>
+    </Reference>
   </ItemGroup>
 
 </Project>
