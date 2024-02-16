@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
@@ -42,31 +42,31 @@
   </ItemGroup>
 
   <ItemGroup Condition="'$(OS)' == 'Unix'">
-    <Content Include="$(SolutionDir)\lib\native\linux\cimgui.dll">
+    <Content Include="$(SolutionDir)\lib\native\linux\cimgui.so">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="$(SolutionDir)\lib\native\linux\cimguizmo.dll">
+    <Content Include="$(SolutionDir)\lib\native\linux\cimguizmo.so">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="$(SolutionDir)\lib\native\linux\cimnodes.dll">
+    <Content Include="$(SolutionDir)\lib\native\linux\cimnodes.so">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="$(SolutionDir)\lib\native\linux\cimplot.dll">
+    <Content Include="$(SolutionDir)\lib\native\linux\cimplot.so">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
 
   <ItemGroup Condition="'$(OS)' == 'Darwin'">
-    <Content Include="$(SolutionDir)\lib\native\mac\cimgui.dll">
+    <Content Include="$(SolutionDir)\lib\native\mac\cimgui.dylib">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="$(SolutionDir)\lib\native\mac\cimguizmo.dll">
+    <Content Include="$(SolutionDir)\lib\native\mac\cimguizmo.dylib">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="$(SolutionDir)\lib\native\mac\cimnodes.dll">
+    <Content Include="$(SolutionDir)\lib\native\mac\cimnodes.dylib">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="$(SolutionDir)\lib\native\mac\cimplot.dll">
+    <Content Include="$(SolutionDir)\lib\native\mac\cimplot.dylib">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
