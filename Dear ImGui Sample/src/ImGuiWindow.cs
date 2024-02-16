@@ -4,22 +4,56 @@ using OpenTK.Mathematics;
 using OpenTK.Windowing.Common;
 using OpenTK.Windowing.Desktop;
 using System;
-using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
-namespace Dear_ImGui_Sample;
 
+namespace ImGuiController_OpenTK;
 
-
-public class ImGuiWindow : GameWindow, IWindowRenderer
+public interface IWindow : IDisposable
 {
-    private readonly ImGuiViewportPtr mViewport;
+    /// <summary>
+    /// Window that holds context where ImGui widgets will be rendered
+    /// </summary>
+    NativeWindow Native { get; }
+    /// <summary>
+    /// All window rendering that should be done after making its context current but before any imgui GL calls, always called once after <see cref="OnDraw"/>
+    /// </summary>
+    /// <param name="deltaSeconds"></param>
+    void OnRender(float deltaSeconds);
+    /// <summary>
+    /// All ImGui widgets draw calls should be in here, always called once after <see cref="OnUpdate"/> and before <see cref="OnRender"/>
+    /// </summary>
+    /// <param name="deltaSeconds"></param>
+    void OnDraw(float deltaSeconds);
+    /// <summary>
+    /// All inputs update in window should be done in this method or before it is called, always called once before <see cref="OnDraw"/>
+    /// </summary>
+    /// <param name="deltaSeconds"></param>
+    void OnUpdate(float deltaSeconds);
+    /// <summary>
+    /// Called directly after making all InGui calls and before switching to next context, always called once after <see cref="OnRender"/>
+    /// </summary>
+    void SwapBuffers();
+}
+public interface IImGuiWindow : IWindow
+{
+    /// <summary>
+    /// Object that makes all GL calls necessary to render ImGui
+    /// </summary>
+    IImGuiRenderer ImGuiRenderer { get; }
+    /// <summary>
+    /// Associated with this window viewport
+    /// </summary>
+    ImGuiViewportPtr Viewport { get; }
+}
 
+public class ImGuiWindow : GameWindow, IImGuiWindow
+{
     public NativeWindow Native => this;
+    public IImGuiRenderer ImGuiRenderer => mImGuiRenderer;
+    public ImGuiViewportPtr Viewport => mViewport;
 
-    public NotSharedDeviceResourced DeviceResources { get; }
-
-    public ImGuiWindow(ImGuiViewportPtr viewport, GameWindow mainWindow) : base(GameWindowSettings.Default, new NativeWindowSettings()
+    public ImGuiWindow(ImGuiViewportPtr viewport, NativeWindow mainWindow, ImGuiRenderer renderer) : base(GameWindowSettings.Default, new NativeWindowSettings()
     {
         SharedContext = mainWindow.Context,
         WindowBorder = GetBorderSettings(viewport),
@@ -31,22 +65,12 @@ public class ImGuiWindow : GameWindow, IWindowRenderer
         mViewport = viewport;
         GCHandle gcHandle = GCHandle.Alloc(this);
         mViewport.PlatformUserData = (IntPtr)gcHandle;
-        DeviceResources = new(Context);
+        mImGuiRenderer = new(renderer, viewport, this);
 
         Resize += _ => mViewport.PlatformRequestResize = true;
         Move += _ => mViewport.PlatformRequestMove = true;
         Closing += _ => mViewport.PlatformRequestClose = true;
     }
-    protected static WindowBorder GetBorderSettings(ImGuiViewportPtr viewport)
-    {
-        if ((viewport.Flags & ImGuiViewportFlags.NoDecoration) != 0)
-        {
-            return WindowBorder.Hidden;
-        }
-
-        return WindowBorder.Resizable;
-    }
-
     public void OnRender(float deltaSeconds)
     {
         base.OnRenderFrame(new FrameEventArgs(deltaSeconds));
@@ -64,47 +88,17 @@ public class ImGuiWindow : GameWindow, IWindowRenderer
     {
 
     }
-}
 
-public struct NotSharedDeviceResourced
-{
-    public int VertexArray;
-    public int VertexBuffer;
-    public int VertexBufferSize;
-    public int IndexBuffer;
-    public int IndexBufferSize;
 
-    public NotSharedDeviceResourced(IGLFWGraphicsContext context)
+    private readonly ImGuiRenderer mImGuiRenderer;
+    private readonly ImGuiViewportPtr mViewport;
+    protected static WindowBorder GetBorderSettings(ImGuiViewportPtr viewport)
     {
-        context.MakeCurrent();
+        if ((viewport.Flags & ImGuiViewportFlags.NoDecoration) != 0)
+        {
+            return WindowBorder.Hidden;
+        }
 
-        VertexBufferSize = 10000;
-        IndexBufferSize = 2000;
-
-        int prevVAO = GL.GetInteger(GetPName.VertexArrayBinding);
-        int prevArrayBuffer = GL.GetInteger(GetPName.ArrayBufferBinding);
-
-        VertexArray = GL.GenVertexArray();
-        GL.BindVertexArray(VertexArray);
-
-        VertexBuffer = GL.GenBuffer();
-        GL.BindBuffer(BufferTarget.ArrayBuffer, VertexBuffer);
-        GL.BufferData(BufferTarget.ArrayBuffer, VertexBufferSize, IntPtr.Zero, BufferUsageHint.DynamicDraw);
-
-        IndexBuffer = GL.GenBuffer();
-        GL.BindBuffer(BufferTarget.ElementArrayBuffer, IndexBuffer);
-        GL.BufferData(BufferTarget.ElementArrayBuffer, IndexBufferSize, IntPtr.Zero, BufferUsageHint.DynamicDraw);
-
-        int stride = Unsafe.SizeOf<ImDrawVert>();
-        GL.VertexAttribPointer(0, 2, VertexAttribPointerType.Float, false, stride, 0);
-        GL.VertexAttribPointer(1, 2, VertexAttribPointerType.Float, false, stride, 8);
-        GL.VertexAttribPointer(2, 4, VertexAttribPointerType.UnsignedByte, true, stride, 16);
-
-        GL.EnableVertexAttribArray(0);
-        GL.EnableVertexAttribArray(1);
-        GL.EnableVertexAttribArray(2);
-
-        GL.BindVertexArray(prevVAO);
-        GL.BindBuffer(BufferTarget.ArrayBuffer, prevArrayBuffer);
+        return WindowBorder.Resizable;
     }
 }

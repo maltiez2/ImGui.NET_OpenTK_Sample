@@ -7,68 +7,47 @@ using OpenTK.Windowing.Common;
 using OpenTK.Windowing.Desktop;
 using System;
 
-namespace Dear_ImGui_Sample;
+namespace ImGuiController_OpenTK;
 
-public interface IWindowRenderer
+public class Window : GameWindow, IWindow
 {
-    NativeWindow Native { get; }
-    NotSharedDeviceResourced DeviceResources { get; }
-    void OnRender(float deltaSeconds);
-    void OnDraw(float deltaSeconds);
-    void OnUpdate(float deltaSeconds);
-    void SwapBuffers();
-}
-
-public class Window : GameWindow, IWindowRenderer
-{
-    ImGuiController _controller;
+    private ImGuiController? _controller;
 
     public NativeWindow Native => this;
 
-    public NotSharedDeviceResourced DeviceResources { get; set; }
+    public IImGuiRenderer ImGuiRenderer => throw new NotImplementedException();
+
+    public ImGuiViewportPtr Viewport => throw new NotImplementedException();
 
     public Window() : base(GameWindowSettings.Default, new NativeWindowSettings() { Size = new Vector2i(1600, 900), APIVersion = new Version(3, 3) })
     {
-        
+
     }
 
     protected override void OnLoad()
     {
         base.OnLoad();
         Title += ": OpenGL Version: " + GL.GetString(StringName.Version);
-        _controller = new ImGuiController(ClientSize.X, ClientSize.Y, this);
+        _controller = new ImGuiController(this);
     }
 
     protected override void OnResize(ResizeEventArgs e)
     {
         base.OnResize(e);
         GL.Viewport(0, 0, ClientSize.X, ClientSize.Y);
-        _controller.WindowResized(ClientSize.X, ClientSize.Y);
     }
 
-    protected override void OnRenderFrame(FrameEventArgs e)
+    protected override void OnRenderFrame(FrameEventArgs args)
     {
-        base.OnRenderFrame(e);
+        base.OnRenderFrame(args);
 
-        _controller.Draw((float)e.Time);
+        _controller?.Render((float)args.Time);
 
-        /*Context.MakeCurrent();
-        
-        base.OnRenderFrame(e);
-
-        _controller.Update(this, (float)e.Time);
-
-        TestWindow();
-
-        _controller.Render((float)e.Time);
-        
-        //SwapBuffers();
-        //_controller.SwapExtraWindows();*/
+        SwapBuffers();
     }
 
-    private void TestWindow()
+    private static void TestWindow()
     {
-        //ImPlotNET.ImPlot.ShowDemoWindow();
         ImGui.ShowDemoWindow();
 
         ImGui.Begin("T_1");
@@ -91,22 +70,9 @@ public class Window : GameWindow, IWindowRenderer
         ImGui.End();
     }
 
-    protected override void OnTextInput(TextInputEventArgs e)
-    {
-        base.OnTextInput(e);
-        _controller.PressChar((char)e.Unicode);
-    }
-    protected override void OnMouseWheel(MouseWheelEventArgs e)
-    {
-        base.OnMouseWheel(e);
-        _controller.MouseScroll(e.Offset);
-    }
-
     public void OnUpdate(float deltaSeconds)
     {
-        /*NewInputFrame();
-        ProcessWindowEvents(IsEventDriven);
-        UpdateTime = deltaSeconds;*/
+        // All updates are done before calling controller rendering
     }
     public void OnRender(float deltaSeconds)
     {
@@ -119,5 +85,10 @@ public class Window : GameWindow, IWindowRenderer
         ImGui.DockSpaceOverViewport();
         ImGuizmo.BeginFrame();
         TestWindow();
+    }
+
+    void IWindow.SwapBuffers()
+    {
+        // Swapping buffer will be handled on its own
     }
 }

@@ -4,7 +4,7 @@ using System.Drawing;
 using System;
 using System.Threading.Tasks;
 
-namespace Dear_ImGui_Sample;
+namespace ImGuiController_OpenTK;
 
 static class Program
 {
