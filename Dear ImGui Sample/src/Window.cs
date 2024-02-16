@@ -71,6 +71,13 @@ public class Window : GameWindow, IWindowRenderer
         //ImPlotNET.ImPlot.ShowDemoWindow();
         ImGui.ShowDemoWindow();
 
+        ImGui.Begin("T_1");
+        ImGui.End();
+
+        ImGui.Begin("T_2");
+        ImGui.End();
+
+
         ImGui.Begin("TEST");
 
         imnodes.BeginNodeEditor();

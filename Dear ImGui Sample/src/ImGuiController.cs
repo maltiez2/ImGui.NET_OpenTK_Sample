@@ -491,15 +491,6 @@ void main()
             }
             window.SwapBuffers();
         }
-
-        //_mainWindow.SwapBuffers();
-
-        /*for (int index = 0; index < viewports.Size; index++)
-        {
-            ImGuiViewportPtr viewport = viewports[index];
-            IWindowRenderer window = GetWindowRenderer(viewport);
-            window.SwapBuffers();
-        }*/
     }
 
     private void SetPerFrameImGuiData(float deltaSeconds, NativeWindow window)
@@ -531,7 +522,7 @@ void main()
         bool keySuper = false;
 
         ImVector<ImGuiViewportPtr> viewports = ImGui.GetPlatformIO().Viewports;
-        for (int index = 0; index < Math.Min(2, viewports.Size); index++)
+        for (int index = 0; index < viewports.Size; index++)
         {
             ImGuiViewportPtr viewport = viewports[index];
             IWindowRenderer window = GetWindowRenderer(viewport);
