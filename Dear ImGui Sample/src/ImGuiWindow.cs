@@ -4,6 +4,7 @@ using OpenTK.Mathematics;
 using OpenTK.Windowing.Common;
 using OpenTK.Windowing.Desktop;
 using System;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 namespace Dear_ImGui_Sample;
@@ -15,6 +16,8 @@ public class ImGuiWindow : GameWindow, IWindowRenderer
     private readonly ImGuiViewportPtr mViewport;
 
     public NativeWindow Native => this;
+
+    public NotSharedDeviceResourced DeviceResources { get; }
 
     public ImGuiWindow(ImGuiViewportPtr viewport, GameWindow mainWindow) : base(GameWindowSettings.Default, new NativeWindowSettings()
     {
@@ -28,6 +31,7 @@ public class ImGuiWindow : GameWindow, IWindowRenderer
         mViewport = viewport;
         GCHandle gcHandle = GCHandle.Alloc(this);
         mViewport.PlatformUserData = (IntPtr)gcHandle;
+        DeviceResources = new(Context);
 
         Resize += _ => mViewport.PlatformRequestResize = true;
         Move += _ => mViewport.PlatformRequestMove = true;
@@ -59,5 +63,48 @@ public class ImGuiWindow : GameWindow, IWindowRenderer
     public void OnDraw(float deltaSeconds)
     {
 
+    }
+}
+
+public struct NotSharedDeviceResourced
+{
+    public int VertexArray;
+    public int VertexBuffer;
+    public int VertexBufferSize;
+    public int IndexBuffer;
+    public int IndexBufferSize;
+
+    public NotSharedDeviceResourced(IGLFWGraphicsContext context)
+    {
+        context.MakeCurrent();
+
+        VertexBufferSize = 10000;
+        IndexBufferSize = 2000;
+
+        int prevVAO = GL.GetInteger(GetPName.VertexArrayBinding);
+        int prevArrayBuffer = GL.GetInteger(GetPName.ArrayBufferBinding);
+
+        VertexArray = GL.GenVertexArray();
+        GL.BindVertexArray(VertexArray);
+
+        VertexBuffer = GL.GenBuffer();
+        GL.BindBuffer(BufferTarget.ArrayBuffer, VertexBuffer);
+        GL.BufferData(BufferTarget.ArrayBuffer, VertexBufferSize, IntPtr.Zero, BufferUsageHint.DynamicDraw);
+
+        IndexBuffer = GL.GenBuffer();
+        GL.BindBuffer(BufferTarget.ElementArrayBuffer, IndexBuffer);
+        GL.BufferData(BufferTarget.ElementArrayBuffer, IndexBufferSize, IntPtr.Zero, BufferUsageHint.DynamicDraw);
+
+        int stride = Unsafe.SizeOf<ImDrawVert>();
+        GL.VertexAttribPointer(0, 2, VertexAttribPointerType.Float, false, stride, 0);
+        GL.VertexAttribPointer(1, 2, VertexAttribPointerType.Float, false, stride, 8);
+        GL.VertexAttribPointer(2, 4, VertexAttribPointerType.UnsignedByte, true, stride, 16);
+
+        GL.EnableVertexAttribArray(0);
+        GL.EnableVertexAttribArray(1);
+        GL.EnableVertexAttribArray(2);
+
+        GL.BindVertexArray(prevVAO);
+        GL.BindBuffer(BufferTarget.ArrayBuffer, prevArrayBuffer);
     }
 }

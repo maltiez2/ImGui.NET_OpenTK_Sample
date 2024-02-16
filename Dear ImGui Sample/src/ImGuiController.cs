@@ -149,6 +149,15 @@ public class ImGuiController : IDisposable
 
         CreateDeviceResources();
 
+        _mainWindow.DeviceResources = new()
+        {
+            VertexArray = _vertexArray,
+            VertexBuffer = _vertexBuffer,
+            VertexBufferSize = _vertexBufferSize,
+            IndexBuffer = _indexBuffer,
+            IndexBufferSize = _indexBufferSize
+        };
+
         SetPerFrameImGuiData(1f / 60f, window);
         UpdateMonitors();
 
@@ -467,18 +476,18 @@ void main()
 
         ImGui.Render();
 
-        
-
         for (int index = 0; index < viewports.Size; index++)
         {
             ImGuiViewportPtr viewport = viewports[index];
             IWindowRenderer window = GetWindowRenderer(viewport);
 
             window.Native.MakeCurrent();
+            var box = window.Native.ClientRectangle;
+            GL.Viewport(0, 0, box.Size.X, box.Size.Y);
             window.OnRender(deltaSeconds);
             using (new SaveGLState(GLVersion, CompatibilityProfile))
             {
-                RenderImDrawData(viewport.DrawData, window.Native);
+                RenderImDrawData(viewport.DrawData, window.Native, window.DeviceResources);
             }
             window.SwapBuffers();
         }
@@ -688,7 +697,7 @@ void main()
         }
     }
 
-    private void RenderImDrawData(ImDrawDataPtr draw_data, NativeWindow window)
+    private void RenderImDrawData(ImDrawDataPtr draw_data, NativeWindow window, NotSharedDeviceResourced resources)
     {
         if (draw_data.CmdListsCount == 0)
         {
@@ -698,33 +707,33 @@ void main()
         //Console.WriteLine($"{draw_data.CmdListsCount} - {window.ClientRectangle}");
 
         // Bind the element buffer (thru the VAO) so that we can resize it.
-        GL.BindVertexArray(_vertexArray);
+        GL.BindVertexArray(resources.VertexArray);
         // Bind the vertex buffer so that we can resize it.
-        GL.BindBuffer(BufferTarget.ArrayBuffer, _vertexBuffer);
+        GL.BindBuffer(BufferTarget.ArrayBuffer, resources.VertexBuffer);
 
         for (int i = 0; i < draw_data.CmdListsCount; i++)
         {
             ImDrawListPtr cmd_list = draw_data.CmdLists[i];
 
             int vertexSize = cmd_list.VtxBuffer.Size * Unsafe.SizeOf<ImDrawVert>();
-            if (vertexSize > _vertexBufferSize)
+            if (vertexSize > resources.VertexBufferSize)
             {
-                int newSize = (int)Math.Max(_vertexBufferSize * 1.5f, vertexSize);
+                int newSize = (int)Math.Max(resources.VertexBufferSize * 1.5f, vertexSize);
 
                 GL.BufferData(BufferTarget.ArrayBuffer, newSize, IntPtr.Zero, BufferUsageHint.DynamicDraw);
-                _vertexBufferSize = newSize;
+                resources.VertexBufferSize = newSize;
 
-                Console.WriteLine($"Resized dear imgui vertex buffer to new size {_vertexBufferSize}");
+                Console.WriteLine($"Resized dear imgui vertex buffer to new size {resources.VertexBufferSize}");
             }
 
             int indexSize = cmd_list.IdxBuffer.Size * sizeof(ushort);
-            if (indexSize > _indexBufferSize)
+            if (indexSize > resources.IndexBufferSize)
             {
-                int newSize = (int)Math.Max(_indexBufferSize * 1.5f, indexSize);
+                int newSize = (int)Math.Max(resources.IndexBufferSize * 1.5f, indexSize);
                 GL.BufferData(BufferTarget.ElementArrayBuffer, newSize, IntPtr.Zero, BufferUsageHint.DynamicDraw);
-                _indexBufferSize = newSize;
+                resources.IndexBufferSize = newSize;
 
-                Console.WriteLine($"Resized dear imgui index buffer to new size {_indexBufferSize}");
+                Console.WriteLine($"Resized dear imgui index buffer to new size {resources.IndexBufferSize}");
             }
         }
 
@@ -744,7 +753,7 @@ void main()
         GL.Uniform1(_shaderFontTextureLocation, 0);
         CheckGLError("Projection");
 
-        GL.BindVertexArray(_vertexArray);
+        GL.BindVertexArray(resources.VertexArray);
         CheckGLError("VAO");
 
         draw_data.ScaleClipRects(io.DisplayFramebufferScale);

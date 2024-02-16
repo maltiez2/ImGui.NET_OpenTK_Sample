@@ -12,6 +12,7 @@ namespace Dear_ImGui_Sample;
 public interface IWindowRenderer
 {
     NativeWindow Native { get; }
+    NotSharedDeviceResourced DeviceResources { get; }
     void OnRender(float deltaSeconds);
     void OnDraw(float deltaSeconds);
     void OnUpdate(float deltaSeconds);
@@ -23,6 +24,8 @@ public class Window : GameWindow, IWindowRenderer
     ImGuiController _controller;
 
     public NativeWindow Native => this;
+
+    public NotSharedDeviceResourced DeviceResources { get; set; }
 
     public Window() : base(GameWindowSettings.Default, new NativeWindowSettings() { Size = new Vector2i(1600, 900), APIVersion = new Version(3, 3) })
     {
