@@ -1,25 +1,22 @@
 ﻿using ImGuiNET;
-using ImGuizmoNET;
-using imnodesNET;
-using OpenTK.Core;
 using OpenTK.Graphics.OpenGL4;
 using OpenTK.Mathematics;
 using OpenTK.Windowing.Common;
 using OpenTK.Windowing.Desktop;
-using OpenTK.Windowing.GraphicsLibraryFramework;
 using System;
-using System.Diagnostics;
 using System.Runtime.InteropServices;
 
 namespace Dear_ImGui_Sample;
 
-public class ImGuiWindow : GameWindow
-{
-    private ImGuiController mController;
-    private ImGuiViewportPtr mViewport;
-    private readonly GCHandle mGcHandle;
 
-    public ImGuiWindow(ImGuiViewportPtr viewport, ImGuiController controller) : base(GameWindowSettings.Default, new NativeWindowSettings()
+
+public class ImGuiWindow : GameWindow, IWindowRenderer
+{
+    private readonly ImGuiViewportPtr mViewport;
+
+    public NativeWindow Native => this;
+
+    public ImGuiWindow(ImGuiViewportPtr viewport) : base(GameWindowSettings.Default, new NativeWindowSettings()
     {
         WindowBorder = GetBorderSettings(viewport),
         Location = new Vector2i((int)viewport.Pos.X, (int)viewport.Pos.Y),
@@ -28,15 +25,13 @@ public class ImGuiWindow : GameWindow
     })
     {
         mViewport = viewport;
-        mGcHandle = GCHandle.Alloc(this);
-        mViewport.PlatformUserData = (IntPtr)mGcHandle;
-        mController = controller;
+        GCHandle gcHandle = GCHandle.Alloc(this);
+        mViewport.PlatformUserData = (IntPtr)gcHandle;
 
         Resize += _ => mViewport.PlatformRequestResize = true;
         Move += _ => mViewport.PlatformRequestMove = true;
         Closing += _ => mViewport.PlatformRequestClose = true;
     }
-
     protected static WindowBorder GetBorderSettings(ImGuiViewportPtr viewport)
     {
         if ((viewport.Flags & ImGuiViewportFlags.NoDecoration) != 0)
@@ -47,24 +42,21 @@ public class ImGuiWindow : GameWindow
         return WindowBorder.Resizable;
     }
 
-    public void Update(float totalSeconds)
+    public void OnRender(float deltaSeconds)
     {
-        NewInputFrame();
-        ProcessWindowEvents(IsEventDriven);
-        UpdateTime = totalSeconds;
-        OnUpdateFrame(new FrameEventArgs(totalSeconds));
-    }
-
-    public void Render(float totalSeconds)
-    {
-        OnRenderFrame(new FrameEventArgs(totalSeconds));
-    }
-
-    protected override void OnRenderFrame(FrameEventArgs args)
-    {
-        base.OnRenderFrame(args);
+        base.OnRenderFrame(new FrameEventArgs(deltaSeconds));
 
         GL.ClearColor(new Color4(0, 32, 48, 255));
         GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit | ClearBufferMask.StencilBufferBit);
+    }
+    public void OnUpdate(float deltaSeconds)
+    {
+        NewInputFrame();
+        ProcessWindowEvents(IsEventDriven);
+        UpdateTime = deltaSeconds;
+    }
+    public void OnDraw(float deltaSeconds)
+    {
+
     }
 }

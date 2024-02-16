@@ -11,6 +11,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Threading;
 using ErrorCode = OpenTK.Graphics.OpenGL4.ErrorCode;
 using Vector2 = OpenTK.Mathematics.Vector2;
 
@@ -47,7 +48,7 @@ public class ImGuiController : IDisposable
     // Image trackers
 
     private ImGuiViewportPtr _mainViewport;
-    private GameWindow _mainWindow;
+    private Window _mainWindow;
 
     private readonly Platform_CreateWindow _createWindow;
     private readonly Platform_DestroyWindow _destroyWindow;
@@ -65,7 +66,7 @@ public class ImGuiController : IDisposable
     /// <summary>
     /// Constructs a new ImGuiController.
     /// </summary>
-    public ImGuiController(int width, int height, GameWindow window)
+    public ImGuiController(int width, int height, Window window)
     {
         _windowWidth = width;
         _windowHeight = height;
@@ -148,7 +149,7 @@ public class ImGuiController : IDisposable
 
         CreateDeviceResources();
 
-        SetPerFrameImGuiData(1f / 60f, window, _mainViewport);
+        SetPerFrameImGuiData(1f / 60f, window);
         UpdateMonitors();
 
         ImGui.NewFrame();
@@ -166,11 +167,28 @@ public class ImGuiController : IDisposable
 
         return (ImGuiWindow)GCHandle.FromIntPtr(viewport.PlatformUserData).Target;
     }
+    private IWindowRenderer GetWindowRenderer(ImGuiViewportPtr viewport)
+    {
+        unsafe
+        {
+            if (viewport.NativePtr == _mainViewport.NativePtr) return _mainWindow;
+        }
 
+        return (ImGuiWindow)GCHandle.FromIntPtr(viewport.PlatformUserData).Target;
+    }
+
+    private const int maxWindows = 25;
+    private int windowsCount = 0;
     private void CreateWindow(ImGuiViewportPtr viewport)
     {
+        if (windowsCount > maxWindows)
+        {
+            _mainWindow.Close();
+            return;
+        }
         Console.WriteLine("CreateWindow");
-        _ = new ImGuiWindow(viewport, this);
+        _ = new ImGuiWindow(viewport);
+        windowsCount++;
     }
     private void DestroyWindow(ImGuiViewportPtr viewport)
     {
@@ -414,132 +432,133 @@ void main()
         io.Fonts.ClearTexData();
     }
 
-    /// <summary>
-    /// Renders the ImGui draw list data.
-    /// </summary>
-    public void Render(float dt)
+    public void Draw(float deltaSeconds)
     {
-        if (!_frameBegun) return;
+        ImGui.UpdatePlatformWindows();
 
-        using (new SaveGLState(GLVersion, CompatibilityProfile))
-        {
-            _frameBegun = false;
-
-            _mainWindow.MakeCurrent();
-            ImGui.Render();
-            RenderImDrawData(ImGui.GetDrawData(), _mainWindow);
-            _mainWindow.SwapBuffers();
-
-            if ((ImGui.GetIO().ConfigFlags & ImGuiConfigFlags.ViewportsEnable) != 0)
-            {
-                ImGui.UpdatePlatformWindows();
-                ImGuiPlatformIOPtr platformIO = ImGui.GetPlatformIO();
-                for (int i = 1; i < platformIO.Viewports.Size; i++)
-                {
-                    ImGuiViewportPtr viewport = platformIO.Viewports[i];
-                    
-                    ImGuiWindow window = GetWindow(viewport) as ImGuiWindow;
-                    window.MakeCurrent();
-                    window.Render(dt);
-                    RenderImDrawData(viewport.DrawData, window);
-                    window.SwapBuffers();
-                }
-            }
-        }
-    }
-
-    /// <summary>
-    /// Updates ImGui input and IO configuration state.
-    /// </summary>
-    public void Update(NativeWindow window, float deltaSeconds)
-    {
-        if (_frameBegun)
-        {
-            ImGui.Render();
-        }
-
-        SetPerFrameImGuiData(deltaSeconds, window, ImGui.GetPlatformIO().Viewports[0]);
-        UpdateImGuiInput(window, deltaSeconds);
+        UpdateImGuiInput(deltaSeconds);
 
         ImVector<ImGuiViewportPtr> viewports = ImGui.GetPlatformIO().Viewports;
-        for (int index = 1; index < viewports.Size; index++)
+        for (int index = 0; index < Math.Min(2, viewports.Size); index++)
         {
             ImGuiViewportPtr viewport = viewports[index];
-            ImGuiWindow slaveWindow = ((ImGuiWindow)GCHandle.FromIntPtr(viewport.PlatformUserData).Target);
-            SetPerFrameImGuiData(deltaSeconds, slaveWindow, viewport);
-            UpdateImGuiInput(slaveWindow, deltaSeconds);
-            slaveWindow.Update(deltaSeconds);
+            IWindowRenderer window = GetWindowRenderer(viewport);
+
+            MonitorInfo monitor = Monitors.GetMonitorFromWindow(window.Native);
+            viewport.Pos = new System.Numerics.Vector2(monitor.ClientArea.Min.X, monitor.ClientArea.Min.Y);
+            viewport.Size = new System.Numerics.Vector2(monitor.ClientArea.Size.X, monitor.ClientArea.Size.Y);
+
+            
+            window.OnUpdate(deltaSeconds);
         }
 
-        _frameBegun = true;
+        SetPerFrameImGuiData(deltaSeconds, _mainWindow);
+
+        UpdateMonitors();
         ImGui.NewFrame();
+
+        for (int index = 0; index < Math.Min(2, viewports.Size); index++)
+        {
+            ImGuiViewportPtr viewport = viewports[index];
+            IWindowRenderer window = GetWindowRenderer(viewport);
+
+            window.OnDraw(deltaSeconds);
+        }
+
+        ImGui.Render();
+
+        for (int index = 0; index < Math.Min(2, viewports.Size); index++)
+        {
+            ImGuiViewportPtr viewport = viewports[index];
+            IWindowRenderer window = GetWindowRenderer(viewport);
+
+            window.Native.MakeCurrent();
+            window.OnRender(deltaSeconds);
+            using (new SaveGLState(GLVersion, CompatibilityProfile))
+            {
+                RenderImDrawData(viewport.DrawData, window.Native);
+            }
+            window.SwapBuffers();
+        }
     }
 
-    /// <summary>
-    /// Sets per-frame data based on the associated window.
-    /// This is called by Update(float).
-    /// </summary>
-    private void SetPerFrameImGuiData(float deltaSeconds, NativeWindow window, ImGuiViewportPtr viewport)
+    private void SetPerFrameImGuiData(float deltaSeconds, NativeWindow window)
     {
         MonitorInfo monitor = Monitors.GetMonitorFromWindow(window);
 
         ImGuiIOPtr io = ImGui.GetIO();
-        /*io.DisplaySize = new System.Numerics.Vector2(
-            monitor.ClientArea.Size.X,
-            monitor.ClientArea.Size.Y);*/
-        /*io.DisplaySize = new System.Numerics.Vector2(
-            window.ClientRectangle.Size.X,
-            window.ClientRectangle.Size.Y);*/
         io.DisplaySize = new System.Numerics.Vector2(
-                _windowWidth / _scaleFactor.X,
-                _windowHeight / _scaleFactor.Y);
+                window.ClientSize.X / _scaleFactor.X,
+                window.ClientSize.Y / _scaleFactor.Y);
         io.DisplayFramebufferScale = new System.Numerics.Vector2(monitor.HorizontalScale, monitor.VerticalScale);
         io.DeltaTime = deltaSeconds; // DeltaTime is in seconds.
-
-        viewport.Pos = new System.Numerics.Vector2(monitor.ClientArea.Min.X, monitor.ClientArea.Min.Y);
-        viewport.Size = new System.Numerics.Vector2(monitor.ClientArea.Size.X, monitor.ClientArea.Size.Y);
     }
 
     readonly List<char> PressedChars = new();
 
-    private void UpdateImGuiInput(NativeWindow window, float dt)
+    private void UpdateImGuiInput(float deltaSeconds)
     {
         ImGuiIOPtr io = ImGui.GetIO();
 
-        MonitorInfo monitor = Monitors.GetMonitorFromWindow(window);
+        bool mouseLeft = false;
+        bool mouseRight= false;
+        bool mouseMiddle = false;
+        bool mouseButton4 = false;
+        bool mouseButton5 = false;
+        bool keyCtrl = false;
+        bool keyAlt = false;
+        bool keyShift = false;
+        bool keySuper = false;
 
-        MouseState MouseState = window.MouseState;
-        KeyboardState KeyboardState = window.KeyboardState;
-
-        io.MouseDown[0] = MouseState[MouseButton.Left];
-        io.MouseDown[1] = MouseState[MouseButton.Right];
-        io.MouseDown[2] = MouseState[MouseButton.Middle];
-        io.MouseDown[3] = MouseState[MouseButton.Button4];
-        io.MouseDown[4] = MouseState[MouseButton.Button5];
-
-        Vector2i screenPoint = new((int)MouseState.X, (int)MouseState.Y);
-        Vector2i point = window.ClientLocation + screenPoint;
-        io.MousePos = new System.Numerics.Vector2(point.X, point.Y);
-
-        foreach (Keys key in Enum.GetValues(typeof(Keys)))
+        ImVector<ImGuiViewportPtr> viewports = ImGui.GetPlatformIO().Viewports;
+        for (int index = 0; index < Math.Min(2, viewports.Size); index++)
         {
-            if (key == Keys.Unknown)
+            ImGuiViewportPtr viewport = viewports[index];
+            IWindowRenderer window = GetWindowRenderer(viewport);
+            MonitorInfo monitor = Monitors.GetMonitorFromWindow(window.Native);
+
+            MouseState mouseState = window.Native.MouseState;
+            KeyboardState keyboardState = window.Native.KeyboardState;
+
+            mouseLeft |= mouseState[MouseButton.Left];
+            mouseRight |= mouseState[MouseButton.Right];
+            mouseMiddle |= mouseState[MouseButton.Middle];
+            mouseButton4 |= mouseState[MouseButton.Button4];
+            mouseButton5 |= mouseState[MouseButton.Button5];
+            keyCtrl |= keyboardState.IsKeyDown(Keys.LeftControl) || keyboardState.IsKeyDown(Keys.RightControl);
+            keyAlt |= keyboardState.IsKeyDown(Keys.LeftAlt) || keyboardState.IsKeyDown(Keys.RightAlt);
+            keyShift |= keyboardState.IsKeyDown(Keys.LeftShift) || keyboardState.IsKeyDown(Keys.RightShift);
+            keySuper |= keyboardState.IsKeyDown(Keys.LeftSuper) || keyboardState.IsKeyDown(Keys.RightSuper);
+
+            foreach (Keys key in Enum.GetValues(typeof(Keys)))
             {
-                continue;
+                if (key == Keys.Unknown)
+                {
+                    continue;
+                }
+                io.AddKeyEvent(TranslateKey(key), keyboardState.IsKeyDown(key));
             }
-            io.AddKeyEvent(TranslateKey(key), KeyboardState.IsKeyDown(key));
         }
+
+        io.MouseDown[0] = mouseLeft;
+        io.MouseDown[1] = mouseRight;
+        io.MouseDown[2] = mouseMiddle;
+        io.MouseDown[3] = mouseButton4;
+        io.MouseDown[4] = mouseButton5;
+        io.KeyCtrl = keyCtrl;
+        io.KeyAlt = keyAlt;
+        io.KeyShift = keyShift;
+        io.KeySuper = keySuper;
+
+        Vector2i screenPoint = new((int)_mainWindow.MouseState.X, (int)_mainWindow.MouseState.Y);
+        Vector2i point = _mainWindow.ClientLocation + screenPoint;
+        io.MousePos = new System.Numerics.Vector2(point.X, point.Y);
 
         foreach (char c in PressedChars)
         {
             io.AddInputCharacter(c);
         }
         PressedChars.Clear();
-
-        io.KeyCtrl = KeyboardState.IsKeyDown(Keys.LeftControl) || KeyboardState.IsKeyDown(Keys.RightControl);
-        io.KeyAlt = KeyboardState.IsKeyDown(Keys.LeftAlt) || KeyboardState.IsKeyDown(Keys.RightAlt);
-        io.KeyShift = KeyboardState.IsKeyDown(Keys.LeftShift) || KeyboardState.IsKeyDown(Keys.RightShift);
-        io.KeySuper = KeyboardState.IsKeyDown(Keys.LeftSuper) || KeyboardState.IsKeyDown(Keys.RightSuper);
     }
 
     internal void PressChar(char keyChar)
@@ -576,7 +595,7 @@ void main()
         private readonly int prevTexture2D = GL.GetInteger(GetPName.TextureBinding2D);
         private readonly int[] prevScissorBox = GetScissorBox();
         private readonly int[] prevPolygonMode = GetPolygonMode();
-        
+
         private readonly int GLVersion;
         private readonly bool CompatibilityProfile;
 
@@ -645,7 +664,7 @@ void main()
             if (prevDepthTestEnabled) GL.Enable(EnableCap.DepthTest); else GL.Disable(EnableCap.DepthTest);
             if (prevCullFaceEnabled) GL.Enable(EnableCap.CullFace); else GL.Disable(EnableCap.CullFace);
             if (prevScissorTestEnabled) GL.Enable(EnableCap.ScissorTest); else GL.Disable(EnableCap.ScissorTest);
-            
+
             if (GLVersion <= 310 || CompatibilityProfile)
             {
                 GL.PolygonMode(MaterialFace.Front, (PolygonMode)prevPolygonMode[0]);
@@ -699,6 +718,8 @@ void main()
         // Setup orthographic projection matrix into our constant buffer
         ImGuiIOPtr io = ImGui.GetIO();
 
+        Console.WriteLine(window.ClientRectangle);
+
         Matrix4 mvp = Matrix4.CreateOrthographicOffCenter(
             window.ClientRectangle.Min.X,
             window.ClientRectangle.Max.X,
@@ -749,9 +770,9 @@ void main()
                     CheckGLError("Texture");
 
                     System.Numerics.Vector4 clip = pcmd.ClipRect;
-                    //Console.WriteLine(clip);
+                    Console.WriteLine(clip);
                     GL.Scissor(
-                        - window.ClientRectangle.Min.X + (int)clip.X,
+                        -window.ClientRectangle.Min.X + (int)clip.X,
                         window.ClientRectangle.Max.Y - (int)clip.W,
                         (int)(clip.Z - clip.X),
                         (int)(clip.W - clip.Y));

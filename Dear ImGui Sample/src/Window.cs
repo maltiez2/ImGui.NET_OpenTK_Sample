@@ -9,9 +9,20 @@ using System;
 
 namespace Dear_ImGui_Sample;
 
-public class Window : GameWindow
+public interface IWindowRenderer
+{
+    NativeWindow Native { get; }
+    void OnRender(float deltaSeconds);
+    void OnDraw(float deltaSeconds);
+    void OnUpdate(float deltaSeconds);
+    void SwapBuffers();
+}
+
+public class Window : GameWindow, IWindowRenderer
 {
     ImGuiController _controller;
+
+    public NativeWindow Native => this;
 
     public Window() : base(GameWindowSettings.Default, new NativeWindowSettings() { Size = new Vector2i(1600, 900), APIVersion = new Version(3, 3) })
     { }
@@ -32,33 +43,27 @@ public class Window : GameWindow
 
     protected override void OnRenderFrame(FrameEventArgs e)
     {
-        Context.MakeCurrent();
+        base.OnRenderFrame(e);
+
+        _controller.Draw((float)e.Time);
+
+        /*Context.MakeCurrent();
         
         base.OnRenderFrame(e);
 
         _controller.Update(this, (float)e.Time);
-
-        GL.ClearColor(new Color4(0, 32, 48, 255));
-        GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit | ClearBufferMask.StencilBufferBit);
-
-        // Enable Docking
-        
-
-        ImGui.DockSpaceOverViewport();
-
-        ImGuizmo.BeginFrame();
 
         TestWindow();
 
         _controller.Render((float)e.Time);
         
         //SwapBuffers();
-        //_controller.SwapExtraWindows();
+        //_controller.SwapExtraWindows();*/
     }
 
     private void TestWindow()
     {
-        ImPlotNET.ImPlot.ShowDemoWindow();
+        //ImPlotNET.ImPlot.ShowDemoWindow();
         ImGui.ShowDemoWindow();
 
         ImGui.Begin("TEST");
@@ -83,5 +88,24 @@ public class Window : GameWindow
     {
         base.OnMouseWheel(e);
         _controller.MouseScroll(e.Offset);
+    }
+
+    public void OnUpdate(float deltaSeconds)
+    {
+        /*NewInputFrame();
+        ProcessWindowEvents(IsEventDriven);
+        UpdateTime = deltaSeconds;*/
+    }
+    public void OnRender(float deltaSeconds)
+    {
+        GL.ClearColor(new Color4(0, 32, 48, 255));
+        GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit | ClearBufferMask.StencilBufferBit);
+    }
+
+    public void OnDraw(float deltaSeconds)
+    {
+        ImGui.DockSpaceOverViewport();
+        ImGuizmo.BeginFrame();
+        TestWindow();
     }
 }
