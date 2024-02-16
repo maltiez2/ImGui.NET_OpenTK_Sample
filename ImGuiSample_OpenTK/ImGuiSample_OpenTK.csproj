@@ -26,10 +26,6 @@
     </Reference>
   </ItemGroup>
 
-  <Target Name="PrintMessage" BeforeTargets="Build">
-    <Message Text="Os: $(OS)" Importance="high" />
-  </Target>
-
   <ItemGroup Condition="'$(OS)' == 'Windows_NT'">
     <Content Include="$(SolutionDir)\lib\native\win\cimgui.dll">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
