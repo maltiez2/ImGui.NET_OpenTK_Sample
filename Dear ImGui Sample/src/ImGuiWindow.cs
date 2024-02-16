@@ -16,8 +16,9 @@ public class ImGuiWindow : GameWindow, IWindowRenderer
 
     public NativeWindow Native => this;
 
-    public ImGuiWindow(ImGuiViewportPtr viewport) : base(GameWindowSettings.Default, new NativeWindowSettings()
+    public ImGuiWindow(ImGuiViewportPtr viewport, GameWindow mainWindow) : base(GameWindowSettings.Default, new NativeWindowSettings()
     {
+        SharedContext = mainWindow.Context,
         WindowBorder = GetBorderSettings(viewport),
         Location = new Vector2i((int)viewport.Pos.X, (int)viewport.Pos.Y),
         Size = new Vector2i((int)viewport.Size.X, (int)viewport.Size.Y),

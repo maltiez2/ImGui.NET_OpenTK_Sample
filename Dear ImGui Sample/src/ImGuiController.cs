@@ -187,7 +187,7 @@ public class ImGuiController : IDisposable
             return;
         }
         Console.WriteLine("CreateWindow");
-        _ = new ImGuiWindow(viewport);
+        _ = new ImGuiWindow(viewport, _mainWindow);
         windowsCount++;
     }
     private void DestroyWindow(ImGuiViewportPtr viewport)
@@ -439,7 +439,7 @@ void main()
         UpdateImGuiInput(deltaSeconds);
 
         ImVector<ImGuiViewportPtr> viewports = ImGui.GetPlatformIO().Viewports;
-        for (int index = 0; index < Math.Min(2, viewports.Size); index++)
+        for (int index = 0; index < viewports.Size; index++)
         {
             ImGuiViewportPtr viewport = viewports[index];
             IWindowRenderer window = GetWindowRenderer(viewport);
@@ -457,7 +457,7 @@ void main()
         UpdateMonitors();
         ImGui.NewFrame();
 
-        for (int index = 0; index < Math.Min(2, viewports.Size); index++)
+        for (int index = 0; index < viewports.Size; index++)
         {
             ImGuiViewportPtr viewport = viewports[index];
             IWindowRenderer window = GetWindowRenderer(viewport);
@@ -467,7 +467,9 @@ void main()
 
         ImGui.Render();
 
-        for (int index = 0; index < Math.Min(2, viewports.Size); index++)
+        
+
+        for (int index = 0; index < viewports.Size; index++)
         {
             ImGuiViewportPtr viewport = viewports[index];
             IWindowRenderer window = GetWindowRenderer(viewport);
@@ -480,6 +482,15 @@ void main()
             }
             window.SwapBuffers();
         }
+
+        //_mainWindow.SwapBuffers();
+
+        /*for (int index = 0; index < viewports.Size; index++)
+        {
+            ImGuiViewportPtr viewport = viewports[index];
+            IWindowRenderer window = GetWindowRenderer(viewport);
+            window.SwapBuffers();
+        }*/
     }
 
     private void SetPerFrameImGuiData(float deltaSeconds, NativeWindow window)
@@ -684,6 +695,8 @@ void main()
             return;
         }
 
+        //Console.WriteLine($"{draw_data.CmdListsCount} - {window.ClientRectangle}");
+
         // Bind the element buffer (thru the VAO) so that we can resize it.
         GL.BindVertexArray(_vertexArray);
         // Bind the vertex buffer so that we can resize it.
@@ -717,8 +730,6 @@ void main()
 
         // Setup orthographic projection matrix into our constant buffer
         ImGuiIOPtr io = ImGui.GetIO();
-
-        Console.WriteLine(window.ClientRectangle);
 
         Matrix4 mvp = Matrix4.CreateOrthographicOffCenter(
             window.ClientRectangle.Min.X,
