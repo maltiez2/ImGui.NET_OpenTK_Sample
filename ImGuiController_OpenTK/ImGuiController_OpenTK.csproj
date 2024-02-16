@@ -4,6 +4,7 @@
     <OutputType>Library</OutputType>
     <TargetFramework>net7.0</TargetFramework>
     <Nullable>enable</Nullable>
+    <BindingsDir>$(ProjectDir)\lib\bindings</BindingsDir>
   </PropertyGroup>
 
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
@@ -20,16 +21,16 @@
 
   <ItemGroup>
     <Reference Include="ImGui.NET">
-      <HintPath>$(SolutionDir)\lib\bindings\ImGui.NET.dll</HintPath>
+      <HintPath>$(BindingsDir)\ImGui.NET.dll</HintPath>
     </Reference>
     <Reference Include="ImGuizmo.NET">
-      <HintPath>$(SolutionDir)\lib\bindings\ImGuizmo.NET.dll</HintPath>
+      <HintPath>$(BindingsDir)\ImGuizmo.NET.dll</HintPath>
     </Reference>
     <Reference Include="ImNodes.NET">
-      <HintPath>$(SolutionDir)\lib\bindings\ImNodes.NET.dll</HintPath>
+      <HintPath>$(BindingsDir)\ImNodes.NET.dll</HintPath>
     </Reference>
     <Reference Include="ImPlot.NET">
-      <HintPath>$(SolutionDir)\lib\bindings\ImPlot.NET.dll</HintPath>
+      <HintPath>$(BindingsDir)\ImPlot.NET.dll</HintPath>
     </Reference>
   </ItemGroup>
 

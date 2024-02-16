@@ -5,6 +5,8 @@
     <TargetFramework>net7.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <NativesDir>$(SolutionDir)\ImGuiController_OpenTK\lib\native</NativesDir>
+    <BindingsDir>$(SolutionDir)\ImGuiController_OpenTK\lib\bindings</BindingsDir>
   </PropertyGroup>
 
   <ItemGroup>
@@ -13,60 +15,60 @@
 
   <ItemGroup>
     <Reference Include="ImGui.NET">
-      <HintPath>$(SolutionDir)\lib\bindings\ImGui.NET.dll</HintPath>
+      <HintPath>$(BindingsDir)\ImGui.NET.dll</HintPath>
     </Reference>
     <Reference Include="ImGuizmo.NET">
-      <HintPath>$(SolutionDir)\lib\bindings\ImGuizmo.NET.dll</HintPath>
+      <HintPath>$(BindingsDir)\ImGuizmo.NET.dll</HintPath>
     </Reference>
     <Reference Include="ImNodes.NET">
-      <HintPath>$(SolutionDir)\lib\bindings\ImNodes.NET.dll</HintPath>
+      <HintPath>$(BindingsDir)\ImNodes.NET.dll</HintPath>
     </Reference>
     <Reference Include="ImPlot.NET">
-      <HintPath>$(SolutionDir)\lib\bindings\ImPlot.NET.dll</HintPath>
+      <HintPath>$(BindingsDir)\ImPlot.NET.dll</HintPath>
     </Reference>
   </ItemGroup>
 
   <ItemGroup Condition="'$(OS)' == 'Windows_NT'">
-    <Content Include="$(SolutionDir)\lib\native\win\cimgui.dll">
+    <Content Include="$(NativesDir)\win\cimgui.dll">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="$(SolutionDir)\lib\native\win\cimguizmo.dll">
+    <Content Include="$(NativesDir)\win\cimguizmo.dll">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="$(SolutionDir)\lib\native\win\cimnodes.dll">
+    <Content Include="$(NativesDir)\win\cimnodes.dll">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="$(SolutionDir)\lib\native\win\cimplot.dll">
+    <Content Include="$(NativesDir)\win\cimplot.dll">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
 
   <ItemGroup Condition="'$(OS)' == 'Unix'">
-    <Content Include="$(SolutionDir)\lib\native\linux\cimgui.so">
+    <Content Include="$(NativesDir)\linux\cimgui.so">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="$(SolutionDir)\lib\native\linux\cimguizmo.so">
+    <Content Include="$(NativesDir)\linux\cimguizmo.so">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="$(SolutionDir)\lib\native\linux\cimnodes.so">
+    <Content Include="$(NativesDir)\linux\cimnodes.so">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="$(SolutionDir)\lib\native\linux\cimplot.so">
+    <Content Include="$(NativesDir)\linux\cimplot.so">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
 
   <ItemGroup Condition="'$(OS)' == 'Darwin'">
-    <Content Include="$(SolutionDir)\lib\native\mac\cimgui.dylib">
+    <Content Include="$(NativesDir)\mac\cimgui.dylib">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="$(SolutionDir)\lib\native\mac\cimguizmo.dylib">
+    <Content Include="$(NativesDir)\mac\cimguizmo.dylib">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="$(SolutionDir)\lib\native\mac\cimnodes.dylib">
+    <Content Include="$(NativesDir)\mac\cimnodes.dylib">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="$(SolutionDir)\lib\native\mac\cimplot.dylib">
+    <Content Include="$(NativesDir)\mac\cimplot.dylib">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
