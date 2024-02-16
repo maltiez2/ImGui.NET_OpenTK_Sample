@@ -1,4 +1,4 @@
-# Dear Imgui Sample using OpenTK with multiple viewports support
+# Dear Imgui Controller and Sample programm using OpenTK with multiple viewports support
 
 ## OpenTK 4
 
