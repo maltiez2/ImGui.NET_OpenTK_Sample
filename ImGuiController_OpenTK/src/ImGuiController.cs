@@ -33,11 +33,11 @@ public class ImGuiController : IDisposable
         UpdateMonitors();
     }
 
-    public virtual void Render(float deltaSeconds)
+    public virtual void Render(float deltaSeconds, bool mainWindowIncluded = true)
     {
         ImGui.UpdatePlatformWindows();
 
-        List<IImGuiWindow> windows = GetWindows();
+        List<IImGuiWindow> windows = GetWindows(mainWindowIncluded);
 
         foreach (IImGuiWindow window in windows)
         {
@@ -47,7 +47,7 @@ public class ImGuiController : IDisposable
             window.OnUpdate(deltaSeconds);
         }
 
-        UpdateImGuiInput();
+        UpdateImGuiInput(mainWindowIncluded);
         SetPerFrameImGuiData(deltaSeconds, mMainWindow.Native);
 
         UpdateMonitors();
