@@ -102,6 +102,7 @@ public sealed class ImGuiWindowsManager : IWindowsManager
     private void CreateWindow(ImGuiViewportPtr viewport)
     {
         IImGuiWindow window = mWindowsMaker.Invoke(viewport);
+        window.Native.IsVisible = false;
         mWindows.Add(window);
     }
     private void DestroyWindow(ImGuiViewportPtr viewport)
@@ -114,9 +115,10 @@ public sealed class ImGuiWindowsManager : IWindowsManager
         viewport.PlatformUserData = IntPtr.Zero;
         if (window != null && mWindows.Contains(window)) mWindows.Remove(window);
     }
-    private void ShowWindow(ImGuiViewportPtr viewport) // @TODO implement not rendering windows until shown
+    private void ShowWindow(ImGuiViewportPtr viewport)
     {
-        //ImGuiWindow window = GetWindow(vp) as ImGuiWindow;
+        NativeWindow window = GetWindowImpl(viewport);
+        window.IsVisible = true;
     }
 
     private unsafe void GetWindowPos(ImGuiViewportPtr viewport, System.Numerics.Vector2* outPos)
