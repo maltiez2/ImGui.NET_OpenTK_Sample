@@ -94,14 +94,20 @@ public class ImGuiController : IDisposable
         return windows;
     }
 
+    protected virtual void LoadFonts()
+    {
+        ImGuiIOPtr io = ImGui.GetIO();
+        io.Fonts.AddFontDefault();
+    }
+
     private IImGuiWindow CreateWindow(ImGuiViewportPtr viewport)
     {
         return new ImGuiWindow(viewport, mMainWindow.Native, mMainImGuiRenderer, this);
     }
-    private static void SetImGuiParameters()
+    private void SetImGuiParameters()
     {
         ImGuiIOPtr io = ImGui.GetIO();
-        io.Fonts.AddFontDefault();
+        LoadFonts();
         io.BackendFlags |= ImGuiBackendFlags.RendererHasVtxOffset;
         io.ConfigFlags |= ImGuiConfigFlags.DockingEnable;
         io.ConfigFlags |= ImGuiConfigFlags.ViewportsEnable;
