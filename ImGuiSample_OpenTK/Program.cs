@@ -55,6 +55,7 @@ public class Window : GameWindow, IWindow
         SwapBuffers();
     }
 
+    private static string text = "";
     private static void TestWindow()
     {
         ImGui.ShowDemoWindow();
@@ -65,6 +66,13 @@ public class Window : GameWindow, IWindow
         ImGui.Dummy(new System.Numerics.Vector2(80, 45));
         imnodes.EndNode();
         imnodes.EndNodeEditor();
+
+        ImGui.Begin("TEST");
+        if (ImGui.Button("copy")) ImGui.SetClipboardText(text);
+        ImGui.SameLine();
+        if (ImGui.Button("paste")) text = ImGui.GetClipboardText();
+        ImGui.InputTextMultiline("AAAAAAA", ref text, 200, new(300, 300));
+        ImGui.End();
 
         ImGui.End();
     }

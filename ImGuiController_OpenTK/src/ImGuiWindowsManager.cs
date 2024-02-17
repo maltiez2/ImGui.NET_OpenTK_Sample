@@ -34,6 +34,8 @@ public sealed class ImGuiWindowsManager : IWindowsManager
         mGetWindowFocus = GetWindowFocus;
         mGetWindowMinimized = GetWindowMinimized;
         mSetWindowTitle = SetWindowTitle;
+        mSetClipboardText = SetClipboardTextFn;
+        mGetClipboardText = GetClipboardTextFn;
 
         platformIO.Platform_CreateWindow = Marshal.GetFunctionPointerForDelegate(mCreateWindow);
         platformIO.Platform_DestroyWindow = Marshal.GetFunctionPointerForDelegate(mDestroyWindow);
@@ -52,6 +54,11 @@ public sealed class ImGuiWindowsManager : IWindowsManager
             ImGuiNative.ImGuiPlatformIO_Set_Platform_GetWindowPos(platformIO.NativePtr, Marshal.GetFunctionPointerForDelegate(mGetWindowPos));
             ImGuiNative.ImGuiPlatformIO_Set_Platform_GetWindowSize(platformIO.NativePtr, Marshal.GetFunctionPointerForDelegate(mGetWindowSize));
         }
+
+        ImGuiIOPtr io = ImGui.GetIO();
+        io.SetClipboardTextFn = Marshal.GetFunctionPointerForDelegate(mSetClipboardText);
+        io.GetClipboardTextFn = Marshal.GetFunctionPointerForDelegate(mGetClipboardText);
+        io.ClipboardUserData = IntPtr.Zero;
     }
 
     public IImGuiWindow? GetWindow(ImGuiViewportPtr viewport)
@@ -88,6 +95,8 @@ public sealed class ImGuiWindowsManager : IWindowsManager
     private readonly Platform_GetWindowFocus mGetWindowFocus;
     private readonly Platform_GetWindowMinimized mGetWindowMinimized;
     private readonly Platform_SetWindowTitle mSetWindowTitle;
+    private readonly SetClipboardTextDlg mSetClipboardText;
+    private readonly GetClipboardTextDlg mGetClipboardText;
     #endregion
 
     private NativeWindow GetWindowImpl(ImGuiViewportPtr viewport)
@@ -100,8 +109,24 @@ public sealed class ImGuiWindowsManager : IWindowsManager
 
         return (ImGuiWindow?)GCHandle.FromIntPtr(viewport.PlatformUserData).Target ?? mMainWindow.Native;
     }
+    private NativeWindow GetWindowImpl()
+    {
+        foreach (IImGuiWindow window in mWindows)
+        {
+            if (window.Native.IsFocused) return window.Native;
+        }
+
+        return mMainWindow.Native;
+    }
 
     #region Delegates' values for ImGui
+
+    private delegate void SetClipboardTextDlg(IntPtr userData, string text);
+    private delegate IntPtr GetClipboardTextDlg(IntPtr userData);
+
+    private unsafe void SetClipboardTextFn(IntPtr userData, string text) => GLFW.SetClipboardString(GetWindowImpl().WindowPtr, text);
+    private unsafe IntPtr GetClipboardTextFn(IntPtr userData) => Marshal.StringToCoTaskMemUTF8(GLFW.GetClipboardString(GetWindowImpl().WindowPtr));
+
     private void CreateWindow(ImGuiViewportPtr viewport)
     {
         IImGuiWindow window = mWindowsMaker.Invoke(viewport);
