@@ -119,7 +119,15 @@ public class ImGuiWindow : GameWindow, IImGuiWindow
     protected override void OnResize(ResizeEventArgs e)
     {
         base.OnResize(e);
-        GL.Viewport(0, 0, ClientSize.X, ClientSize.Y);
+
+        unsafe
+        {
+            Window* context = GLFW.GetCurrentContext();
+            Native.Context.MakeCurrent();
+            GL.Viewport(0, 0, ClientSize.X, ClientSize.Y);
+            GLFW.MakeContextCurrent(context);
+        }
+
     }
 
     protected readonly ImGuiRenderer mImGuiRenderer;
