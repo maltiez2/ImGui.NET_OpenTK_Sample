@@ -1,6 +1,7 @@
 ﻿using ImGuiNET;
 using OpenTK.Windowing.Common;
 using OpenTK.Windowing.Desktop;
+using OpenTK.Windowing.GraphicsLibraryFramework;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -102,7 +103,6 @@ public sealed class ImGuiWindowsManager : IWindowsManager
     private void CreateWindow(ImGuiViewportPtr viewport)
     {
         IImGuiWindow window = mWindowsMaker.Invoke(viewport);
-        window.Native.IsVisible = false;
         mWindows.Add(window);
     }
     private void DestroyWindow(ImGuiViewportPtr viewport)

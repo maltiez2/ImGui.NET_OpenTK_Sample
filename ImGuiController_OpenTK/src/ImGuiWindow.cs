@@ -3,7 +3,10 @@ using OpenTK.Graphics.OpenGL4;
 using OpenTK.Mathematics;
 using OpenTK.Windowing.Common;
 using OpenTK.Windowing.Desktop;
+using OpenTK.Windowing.GraphicsLibraryFramework;
 using System;
+using System.Collections;
+using System.Reflection;
 using System.Runtime.InteropServices;
 
 
@@ -62,6 +65,7 @@ public class ImGuiWindow : GameWindow, IImGuiWindow
     {
         SharedContext = mainWindow.Context,
         WindowBorder = GetBorderSettings(viewport),
+        StartVisible = false,
         Location = new Vector2i((int)viewport.Pos.X, (int)viewport.Pos.Y),
         Size = new Vector2i((int)viewport.Size.X, (int)viewport.Size.Y),
         APIVersion = new Version(3, 3)
@@ -78,6 +82,8 @@ public class ImGuiWindow : GameWindow, IImGuiWindow
 
         MouseWheel += controller.OnMouseScroll;
         TextInput += controller.OnTextInput;
+
+        SetMouseButton(MouseButton.Left, true);
     }
     public void OnRender(float deltaSeconds)
     {
@@ -97,14 +103,27 @@ public class ImGuiWindow : GameWindow, IImGuiWindow
 
     }
 
+    public void SetMouseButton(MouseButton button, bool value)
+    {
+        MouseState state = MouseState;
+        FieldInfo? fieldInfo = typeof(MouseState).GetField("_buttons", BindingFlags.NonPublic | BindingFlags.Instance);
+        BitArray? buttons = (BitArray?)fieldInfo?.GetValue(state);
+        if (buttons == null) return;
+        buttons[(int)button] = value;
+    }
+    public void ReleaseLeftMouseButton()
+    {
+        SetMouseButton(MouseButton.Left, false);
+    }
+
     protected override void OnResize(ResizeEventArgs e)
     {
         base.OnResize(e);
         GL.Viewport(0, 0, ClientSize.X, ClientSize.Y);
     }
 
-    private readonly ImGuiRenderer mImGuiRenderer;
-    private readonly ImGuiViewportPtr mViewport;
+    protected readonly ImGuiRenderer mImGuiRenderer;
+    protected readonly ImGuiViewportPtr mViewport;
     protected static WindowBorder GetBorderSettings(ImGuiViewportPtr viewport)
     {
         if ((viewport.Flags & ImGuiViewportFlags.NoDecoration) != 0)
