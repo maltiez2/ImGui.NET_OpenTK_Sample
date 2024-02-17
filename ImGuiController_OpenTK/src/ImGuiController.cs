@@ -141,7 +141,7 @@ public class ImGuiController : IDisposable
         io.MouseWheelH = args.Offset.X;
     }
 
-    private static void SetPerFrameImGuiData(float deltaSeconds, NativeWindow window)
+    protected static void SetPerFrameImGuiData(float deltaSeconds, NativeWindow window)
     {
         MonitorInfo monitor = Monitors.GetMonitorFromWindow(window);
         ImGuiIOPtr io = ImGui.GetIO();
@@ -151,7 +151,7 @@ public class ImGuiController : IDisposable
         io.DisplayFramebufferScale = new System.Numerics.Vector2(monitor.HorizontalScale, monitor.VerticalScale);
         io.DeltaTime = deltaSeconds;
     }
-    private static void UpdateMonitors()
+    protected static void UpdateMonitors()
     {
         ImGuiPlatformIOPtr platformIO = ImGui.GetPlatformIO();
         List<MonitorInfo> monitors = Monitors.GetMonitors();
