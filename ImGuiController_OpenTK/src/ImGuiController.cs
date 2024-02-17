@@ -74,7 +74,7 @@ public class ImGuiController : IDisposable
     protected readonly ImGuiViewportPtr mMainViewport;
     protected readonly ImGuiRenderer mMainImGuiRenderer;
 
-    protected List<IImGuiWindow> GetWindows()
+    protected List<IImGuiWindow> GetWindows(bool includeMain = true)
     {
         List<IImGuiWindow> windows = new();
 
@@ -83,7 +83,10 @@ public class ImGuiController : IDisposable
         {
             ImGuiViewportPtr viewport = viewports[index];
             IImGuiWindow? window = mWindowsManager.GetWindow(viewport);
-            if (window == null) continue;
+            unsafe
+            {
+                if (window == null || (!includeMain && viewport.NativePtr == mMainViewport.NativePtr)) continue;
+            }
 
             windows.Add(window);
         }
@@ -172,10 +175,11 @@ public class ImGuiController : IDisposable
             monitor.WorkSize = new System.Numerics.Vector2(clientArea.Size.X, clientArea.Size.Y);
         }
     }
-    private void UpdateImGuiInput()
+
+
+    protected void CollectKeysInputs(bool mainWindowIncluded = true)
     {
         ImGuiIOPtr io = ImGui.GetIO();
-
         bool mouseLeft = false;
         bool mouseRight = false;
         bool mouseMiddle = false;
@@ -186,7 +190,7 @@ public class ImGuiController : IDisposable
         bool keyShift = false;
         bool keySuper = false;
 
-        foreach (NativeWindow window in GetWindows().Select(window => window.Native))
+        foreach (NativeWindow window in GetWindows(mainWindowIncluded).Select(window => window.Native))
         {
             MouseState mouseState = window.MouseState;
             KeyboardState keyboardState = window.KeyboardState;
@@ -220,12 +224,23 @@ public class ImGuiController : IDisposable
         io.KeyAlt = keyAlt;
         io.KeyShift = keyShift;
         io.KeySuper = keySuper;
+    }
 
+    protected System.Numerics.Vector2 CollectMousePosition(bool outsideOfMainWinodw = false)
+    {
         NativeWindow mainWindow = mMainWindow.Native;
-
         Vector2i screenPoint = new((int)mainWindow.MouseState.X, (int)mainWindow.MouseState.Y);
         Vector2i point = mainWindow.ClientLocation + screenPoint;
-        io.MousePos = new System.Numerics.Vector2(point.X, point.Y);
+        return new(point.X, point.Y);
+    }
+
+    protected virtual void UpdateImGuiInput(bool mainWindowIncluded = true)
+    {
+        ImGuiIOPtr io = ImGui.GetIO();
+
+        CollectKeysInputs(mainWindowIncluded);
+
+        io.MousePos = CollectMousePosition(!mainWindowIncluded);
 
         foreach (char character in PressedCharacters)
         {
