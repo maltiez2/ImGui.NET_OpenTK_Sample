@@ -259,7 +259,6 @@ public sealed class ImGuiRenderer : IImGuiRenderer
                 CheckGLError("Texture");
 
                 System.Numerics.Vector4 clip = pcmd.ClipRect;
-                Console.WriteLine(clip);
                 GL.Scissor(
                     -window.ClientRectangle.Min.X + (int)clip.X,
                     window.ClientRectangle.Max.Y - (int)clip.W,
