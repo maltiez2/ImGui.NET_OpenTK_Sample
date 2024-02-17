@@ -27,11 +27,6 @@ public sealed class ImGuiWindowsManager : IWindowsManager
         mCreateWindow = CreateWindow;
         mDestroyWindow = DestroyWindow;
         mShowWindow = ShowWindow;
-        unsafe
-        {
-            mGetWindowPos = GetWindowPos;
-            mGetWindowSize = GetWindowSize;
-        }
         mSetWindowPos = SetWindowPos;
         mSetWindowSize = SetWindowSize;
         mSetWindowFocus = SetWindowFocus;
@@ -51,6 +46,8 @@ public sealed class ImGuiWindowsManager : IWindowsManager
 
         unsafe
         {
+            mGetWindowPos = GetWindowPos;
+            mGetWindowSize = GetWindowSize;
             ImGuiNative.ImGuiPlatformIO_Set_Platform_GetWindowPos(platformIO.NativePtr, Marshal.GetFunctionPointerForDelegate(mGetWindowPos));
             ImGuiNative.ImGuiPlatformIO_Set_Platform_GetWindowSize(platformIO.NativePtr, Marshal.GetFunctionPointerForDelegate(mGetWindowSize));
         }
@@ -95,6 +92,7 @@ public sealed class ImGuiWindowsManager : IWindowsManager
         unsafe
         {
             if (viewport.NativePtr == mMainViewport.NativePtr) return mMainWindow.Native;
+            if (viewport.PlatformUserData == IntPtr.Zero) return mMainWindow.Native;
         }
 
         return (ImGuiWindow?)GCHandle.FromIntPtr(viewport.PlatformUserData).Target ?? mMainWindow.Native;
@@ -103,13 +101,11 @@ public sealed class ImGuiWindowsManager : IWindowsManager
     #region Delegates' values for ImGui
     private void CreateWindow(ImGuiViewportPtr viewport)
     {
-        Console.WriteLine("CreateWindow");
         IImGuiWindow window = mWindowsMaker.Invoke(viewport);
         mWindows.Add(window);
     }
     private void DestroyWindow(ImGuiViewportPtr viewport)
     {
-        Console.WriteLine("DestroyWindow");
         if (viewport.PlatformUserData == IntPtr.Zero) return;
 
         ImGuiWindow? window = (ImGuiWindow?)GCHandle.FromIntPtr(viewport.PlatformUserData).Target;
@@ -120,7 +116,6 @@ public sealed class ImGuiWindowsManager : IWindowsManager
     }
     private void ShowWindow(ImGuiViewportPtr viewport) // @TODO implement not rendering windows until shown
     {
-        Console.WriteLine("ShowWindow");
         //ImGuiWindow window = GetWindow(vp) as ImGuiWindow;
     }
 
@@ -131,31 +126,23 @@ public sealed class ImGuiWindowsManager : IWindowsManager
     }
     private void SetWindowPos(ImGuiViewportPtr viewport, System.Numerics.Vector2 pos)
     {
-        Console.WriteLine($"SetWindowPos: {pos}");
         NativeWindow window = GetWindowImpl(viewport);
         window.Location = new((int)pos.X, (int)pos.Y);
     }
     private void SetWindowSize(ImGuiViewportPtr viewport, System.Numerics.Vector2 size)
     {
-        Console.WriteLine("SetWindowSize");
         NativeWindow window = GetWindowImpl(viewport);
         window.Size = new((int)size.X, (int)size.Y);
     }
     private unsafe void GetWindowSize(ImGuiViewportPtr viewport, System.Numerics.Vector2* outSize)
     {
-        if (viewport.NativePtr == mMainViewport.NativePtr)
-        {
-            *outSize = new System.Numerics.Vector2(mMainWindow.Native.Size.X, mMainWindow.Native.Size.Y);
-            return;
-        }
-
         NativeWindow window = GetWindowImpl(viewport);
         *outSize = new System.Numerics.Vector2(window.Size.X, window.Size.Y);
+        Console.WriteLine($"GetWindowSize: {window.Size}");
     }
 
     private void SetWindowFocus(ImGuiViewportPtr viewport)
     {
-        Console.WriteLine("SetWindowFocus");
         NativeWindow window = GetWindowImpl(viewport);
         window.Focus();
     }
@@ -171,7 +158,6 @@ public sealed class ImGuiWindowsManager : IWindowsManager
     }
     private unsafe void SetWindowTitle(ImGuiViewportPtr viewport, IntPtr title)
     {
-        Console.WriteLine("SetWindowTitle");
         NativeWindow window = GetWindowImpl(viewport);
         byte* titlePtr = (byte*)title;
         int count = 0;
@@ -195,6 +181,5 @@ public sealed class ImGuiWindowsManager : IWindowsManager
             window.Dispose();
         }
     }
-
     #endregion
 }

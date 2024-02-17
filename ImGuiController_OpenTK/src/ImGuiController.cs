@@ -7,6 +7,7 @@ using OpenTK.Windowing.Desktop;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
@@ -92,7 +93,7 @@ public class ImGuiController : IDisposable
 
     private IImGuiWindow CreateWindow(ImGuiViewportPtr viewport)
     {
-        return new ImGuiWindow(viewport, mMainWindow.Native, mMainImGuiRenderer);
+        return new ImGuiWindow(viewport, mMainWindow.Native, mMainImGuiRenderer, this);
     }
     private static void SetImGuiParameters()
     {
@@ -106,7 +107,6 @@ public class ImGuiController : IDisposable
         io.BackendFlags |= ImGuiBackendFlags.HasSetMousePos;
         io.BackendFlags |= ImGuiBackendFlags.PlatformHasViewports;
         io.BackendFlags |= ImGuiBackendFlags.RendererHasViewports;
-        ImGui.GetIO().BackendFlags |= ImGuiBackendFlags.RendererHasVtxOffset;
     }
     private static void SetImGuiContext()
     {
@@ -125,13 +125,13 @@ public class ImGuiController : IDisposable
     }
 
     #region Updating
-    private readonly List<char> PressedCharacters = new();
+    public List<char> PressedCharacters { get; } = new();
 
-    private void OnTextInput(TextInputEventArgs args)
+    public void OnTextInput(TextInputEventArgs args)
     {
         PressedCharacters.Add((char)args.Unicode);
     }
-    private void OnMouseScroll(MouseWheelEventArgs args)
+    public void OnMouseScroll(MouseWheelEventArgs args)
     {
         ImGuiIOPtr io = ImGui.GetIO();
         io.MouseWheel = args.Offset.Y;
@@ -143,8 +143,8 @@ public class ImGuiController : IDisposable
         MonitorInfo monitor = Monitors.GetMonitorFromWindow(window);
         ImGuiIOPtr io = ImGui.GetIO();
         io.DisplaySize = new System.Numerics.Vector2(
-                window.ClientSize.X,
-                window.ClientSize.Y);
+                window.ClientSize.X / monitor.HorizontalScale,
+                window.ClientSize.Y / monitor.VerticalScale);
         io.DisplayFramebufferScale = new System.Numerics.Vector2(monitor.HorizontalScale, monitor.VerticalScale);
         io.DeltaTime = deltaSeconds;
     }
@@ -186,15 +186,10 @@ public class ImGuiController : IDisposable
         bool keyShift = false;
         bool keySuper = false;
 
-        ImVector<ImGuiViewportPtr> viewports = ImGui.GetPlatformIO().Viewports;
-        for (int index = 0; index < viewports.Size; index++)
+        foreach (NativeWindow window in GetWindows().Select(window => window.Native))
         {
-            ImGuiViewportPtr viewport = viewports[index];
-            IImGuiWindow? window = mWindowsManager.GetWindow(viewport);
-            if (window == null) continue;
-
-            MouseState mouseState = window.Native.MouseState;
-            KeyboardState keyboardState = window.Native.KeyboardState;
+            MouseState mouseState = window.MouseState;
+            KeyboardState keyboardState = window.KeyboardState;
 
             mouseLeft |= mouseState[MouseButton.Left];
             mouseRight |= mouseState[MouseButton.Right];
@@ -232,9 +227,9 @@ public class ImGuiController : IDisposable
         Vector2i point = mainWindow.ClientLocation + screenPoint;
         io.MousePos = new System.Numerics.Vector2(point.X, point.Y);
 
-        foreach (char c in PressedCharacters)
+        foreach (char character in PressedCharacters)
         {
-            io.AddInputCharacter(c);
+            io.AddInputCharacter(character);
         }
         PressedCharacters.Clear();
     }

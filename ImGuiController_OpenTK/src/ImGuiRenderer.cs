@@ -2,6 +2,7 @@
 using OpenTK.Graphics.OpenGL4;
 using OpenTK.Mathematics;
 using OpenTK.Windowing.Desktop;
+using OpenTK.Windowing.GraphicsLibraryFramework;
 using System;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
@@ -187,7 +188,7 @@ public sealed class ImGuiRenderer : IImGuiRenderer
         if (drawData.CmdListsCount == 0) return;
 
         ResizeBuffers(drawData);
-        SetupOrthographicProjection(window);
+        SetupOrthographicProjection(window, drawData);
 
         ImGuiIOPtr io = ImGui.GetIO();
         drawData.ScaleClipRects(io.DisplayFramebufferScale);
@@ -237,54 +238,62 @@ public sealed class ImGuiRenderer : IImGuiRenderer
     }
     private void RenderCommandList(ImDrawDataPtr drawData, NativeWindow window, int index, ImGuiIOPtr io)
     {
-        ImDrawListPtr cmd_list = drawData.CmdLists[index];
+        ImDrawListPtr commandList = drawData.CmdLists[index];
 
-        GL.BufferSubData(BufferTarget.ArrayBuffer, IntPtr.Zero, cmd_list.VtxBuffer.Size * Unsafe.SizeOf<ImDrawVert>(), cmd_list.VtxBuffer.Data);
+        GL.BufferSubData(BufferTarget.ArrayBuffer, IntPtr.Zero, commandList.VtxBuffer.Size * Unsafe.SizeOf<ImDrawVert>(), commandList.VtxBuffer.Data);
         CheckGLError($"Data Vert {index}");
 
-        GL.BufferSubData(BufferTarget.ElementArrayBuffer, IntPtr.Zero, cmd_list.IdxBuffer.Size * sizeof(ushort), cmd_list.IdxBuffer.Data);
+        GL.BufferSubData(BufferTarget.ElementArrayBuffer, IntPtr.Zero, commandList.IdxBuffer.Size * sizeof(ushort), commandList.IdxBuffer.Data);
         CheckGLError($"Data Idx {index}");
 
-        for (int cmd_i = 0; cmd_i < cmd_list.CmdBuffer.Size; cmd_i++)
+        for (int cmd_i = 0; cmd_i < commandList.CmdBuffer.Size; cmd_i++)
         {
-            ImDrawCmdPtr pcmd = cmd_list.CmdBuffer[cmd_i];
-            if (pcmd.UserCallback != IntPtr.Zero)
+            ImDrawCmdPtr command = commandList.CmdBuffer[cmd_i];
+            if (command.UserCallback != IntPtr.Zero)
             {
                 throw new NotImplementedException();
             }
             else
             {
                 GL.ActiveTexture(TextureUnit.Texture0);
-                GL.BindTexture(TextureTarget.Texture2D, (int)pcmd.TextureId);
+                GL.BindTexture(TextureTarget.Texture2D, (int)command.TextureId);
                 CheckGLError("Texture");
 
-                System.Numerics.Vector4 clip = pcmd.ClipRect;
-                GL.Scissor(
-                    -window.ClientRectangle.Min.X + (int)clip.X,
-                    window.ClientRectangle.Max.Y - (int)clip.W,
-                    (int)(clip.Z - clip.X),
-                    (int)(clip.W - clip.Y));
-                CheckGLError("Scissor");
+                System.Numerics.Vector4 clip = command.ClipRect;
+                SetupScissor(window, clip);
 
                 if ((io.BackendFlags & ImGuiBackendFlags.RendererHasVtxOffset) != 0)
                 {
-                    GL.DrawElementsBaseVertex(PrimitiveType.Triangles, (int)pcmd.ElemCount, DrawElementsType.UnsignedShort, (IntPtr)(pcmd.IdxOffset * sizeof(ushort)), unchecked((int)pcmd.VtxOffset));
+                    GL.DrawElementsBaseVertex(PrimitiveType.Triangles, (int)command.ElemCount, DrawElementsType.UnsignedShort, (IntPtr)(command.IdxOffset * sizeof(ushort)), unchecked((int)command.VtxOffset));
                 }
                 else
                 {
-                    GL.DrawElements(BeginMode.Triangles, (int)pcmd.ElemCount, DrawElementsType.UnsignedShort, (int)pcmd.IdxOffset * sizeof(ushort));
+                    GL.DrawElements(BeginMode.Triangles, (int)command.ElemCount, DrawElementsType.UnsignedShort, (int)command.IdxOffset * sizeof(ushort));
                 }
                 CheckGLError("Draw");
             }
         }
     }
-    private void SetupOrthographicProjection(NativeWindow window)
+    private static void SetupScissor(NativeWindow window, System.Numerics.Vector4 clip)
+    {
+        int posX = window.ClientLocation.X;
+        int posY = window.ClientLocation.Y + window.ClientSize.Y;
+
+        int x = (int)clip.X - posX;
+        int y = posY - (int)clip.W;
+        int width = (int)(clip.Z - clip.X);
+        int height = (int)(clip.W - clip.Y);
+
+        GL.Scissor(x, y, width, height);
+        CheckGLError("Scissor");
+    }
+    private void SetupOrthographicProjection(NativeWindow window, ImDrawDataPtr drawData)
     {
         Matrix4 mvp = Matrix4.CreateOrthographicOffCenter(
-            window.ClientRectangle.Min.X,
-            window.ClientRectangle.Max.X,
-            window.ClientRectangle.Max.Y,
-            window.ClientRectangle.Min.Y,
+            window.ClientLocation.X,
+            window.ClientLocation.X + drawData.DisplaySize.X,
+            window.ClientLocation.Y + drawData.DisplaySize.Y,
+            window.ClientLocation.Y,
             -1.0f,
             1.0f);
 

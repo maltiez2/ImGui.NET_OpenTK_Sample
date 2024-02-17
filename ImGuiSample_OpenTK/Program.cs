@@ -1,6 +1,7 @@
 ﻿using ImGuiNET;
 using ImGuizmoNET;
 using imnodesNET;
+using ImPlotNET;
 using OpenTK.Graphics.OpenGL4;
 using OpenTK.Mathematics;
 using OpenTK.Windowing.Common;
@@ -57,22 +58,12 @@ public class Window : GameWindow, IWindow
     private static void TestWindow()
     {
         ImGui.ShowDemoWindow();
-
-        ImGui.Begin("T_1");
-        ImGui.End();
-
-        ImGui.Begin("T_2");
-        ImGui.End();
-
-
-        ImGui.Begin("TEST");
-
+        ImPlot.ShowDemoWindow();
+        
         imnodes.BeginNodeEditor();
-
         imnodes.BeginNode(1);
         ImGui.Dummy(new System.Numerics.Vector2(80, 45));
         imnodes.EndNode();
-
         imnodes.EndNodeEditor();
 
         ImGui.End();

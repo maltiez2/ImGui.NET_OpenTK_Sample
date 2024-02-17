@@ -56,8 +56,9 @@ public class ImGuiWindow : GameWindow, IImGuiWindow
     public NativeWindow Native => this;
     public IImGuiRenderer ImGuiRenderer => mImGuiRenderer;
     public ImGuiViewportPtr Viewport => mViewport;
+    public void ContextMakeCurrent() => Context.MakeCurrent();
 
-    public ImGuiWindow(ImGuiViewportPtr viewport, NativeWindow mainWindow, ImGuiRenderer renderer) : base(GameWindowSettings.Default, new NativeWindowSettings()
+    public ImGuiWindow(ImGuiViewportPtr viewport, NativeWindow mainWindow, ImGuiRenderer renderer, ImGuiController controller) : base(GameWindowSettings.Default, new NativeWindowSettings()
     {
         SharedContext = mainWindow.Context,
         WindowBorder = GetBorderSettings(viewport),
@@ -74,6 +75,9 @@ public class ImGuiWindow : GameWindow, IImGuiWindow
         Resize += _ => mViewport.PlatformRequestResize = true;
         Move += _ => mViewport.PlatformRequestMove = true;
         Closing += _ => mViewport.PlatformRequestClose = true;
+
+        MouseWheel += controller.OnMouseScroll;
+        TextInput += controller.OnTextInput;
     }
     public void OnRender(float deltaSeconds)
     {
@@ -93,6 +97,11 @@ public class ImGuiWindow : GameWindow, IImGuiWindow
 
     }
 
+    protected override void OnResize(ResizeEventArgs e)
+    {
+        base.OnResize(e);
+        GL.Viewport(0, 0, ClientSize.X, ClientSize.Y);
+    }
 
     private readonly ImGuiRenderer mImGuiRenderer;
     private readonly ImGuiViewportPtr mViewport;
@@ -105,6 +114,4 @@ public class ImGuiWindow : GameWindow, IImGuiWindow
 
         return WindowBorder.Resizable;
     }
-
-    public void ContextMakeCurrent() => Context.MakeCurrent();
 }
