@@ -68,6 +68,8 @@ public sealed class ImGuiWindowsManager : IWindowsManager
 
     public delegate IImGuiWindow CreateNewWindow(ImGuiViewportPtr viewport);
 
+    public event Action<NativeWindow>? OnWindowCreated;
+    public event Action<NativeWindow>? OnWindowDestroyed;
 
     private readonly HashSet<IImGuiWindow> mWindows = new();
     private readonly ImGuiViewportPtr mMainViewport;
@@ -104,6 +106,7 @@ public sealed class ImGuiWindowsManager : IWindowsManager
     {
         IImGuiWindow window = mWindowsMaker.Invoke(viewport);
         mWindows.Add(window);
+        if (window != null) OnWindowCreated?.Invoke(window.Native);
     }
     private void DestroyWindow(ImGuiViewportPtr viewport)
     {
@@ -114,6 +117,7 @@ public sealed class ImGuiWindowsManager : IWindowsManager
         window?.Dispose();
         viewport.PlatformUserData = IntPtr.Zero;
         if (window != null && mWindows.Contains(window)) mWindows.Remove(window);
+        if (window != null) OnWindowDestroyed?.Invoke(window);
     }
     private void ShowWindow(ImGuiViewportPtr viewport)
     {
