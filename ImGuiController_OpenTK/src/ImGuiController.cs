@@ -1,5 +1,6 @@
 ﻿using ImGuiNET;
 using ImGuizmoNET;
+using imnodesNET;
 using ImPlotNET;
 using OpenTK.Mathematics;
 using OpenTK.Windowing.Common;
@@ -52,6 +53,7 @@ public class ImGuiController : IDisposable
 
         UpdateMonitors();
         ImGui.NewFrame();
+        ImGuizmo.BeginFrame();
 
         foreach (IImGuiWindow window in windows)
         {
